@@ -87,6 +87,15 @@ do {
 
 is_refcount( $i, 1 );
 
+do {
+    my $f = Future->new;
+    my $subscription = $i->on( foo => $f );
+    is( $i->has_subscribers('foo'), !!1 );
+
+    $f->cancel;
+    is( $i->has_subscribers('foo'), !!0 );
+};
+
 
 ##############################
 #

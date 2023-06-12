@@ -6,7 +6,7 @@ use Object::Pad 0.79;
 package Object::Pad::Role::EventEmitter;
 role Object::Pad::Role::EventEmitter;
 
-use Scalar::Util qw(blessed);
+use Scalar::Util qw(blessed weaken);
 use Scope::Guard;
 
 
@@ -48,10 +48,24 @@ method on( $event, $subscriber ) {
                 sub {
                     my ($self) = @_;
                     $subscriber->done( @_ );
-                    $self->unsubscribe( $event, __SUB__ );
                 },
                 sub { $subscriber->cancel; }
                 ];
+
+            my $weak_self = $self;
+            weaken $weak_self;
+            $subscriber->on_ready(
+                sub {
+                    if ($weak_self) {
+                        # During the DEMOLISH workaround, the weak
+                        # self reference has been nullified, yet
+                        # since the Future is being cancelled, this
+                        # callback is being invoked.  It's not an
+                        # issue when subscription removal isn't
+                        # executed.
+                        $weak_self->unsubscribe( $event, $item->[0] );
+                    }
+                });
         }
         else { # this must be a Future::Queue
             $item = [
