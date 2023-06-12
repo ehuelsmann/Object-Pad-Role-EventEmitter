@@ -141,18 +141,18 @@ Object::Pad::Role::EventEmitter - A role for Object::Pad classes to emit events
   my $i = MyObject->new;
 
   # subscribe to an event once:
-  $i->once(foo => sub { say "Hello" });
+  $i->once( foo => sub { say "Hello" } );
 
   # or with a future:
-  my $f = Future->new->on_done(sub { say "Hello" });
-  $i->on(foo => $f);
+  my $f = Future->new->on_done( sub { say "Hello" } );
+  $i->on( foo => $f );
 
   # subscribe to multiple events:
-  my $subscription = $i->on(foo => sub { say "Hello" });
+  my $subscription = $i->on( foo => sub { say "Hello" } );
 
   # or on a queue:
   my $q = Future::Queue->new;
-  my $subscription_q = $i->on(foo => $q);
+  my $subscription_q = $i->on( foo => $q );
 
   # then unsubscribe:
   $i->unsubscribe( $subscription );
@@ -174,7 +174,7 @@ or a L<Future> to receive events.
 
   my $subscription = $obj->on( foo => sub { ... } );
   my $subscription = $obj->on( foo => $f );
-  my $subscription = $obj->on( foo => $q);
+  my $subscription = $obj->on( foo => $q );
 
 Subscribes to notifications of the named event.  The event consumer can be
 a coderef, L<Future> or L<Future::Queue>. In case it's a C<Future>, the
@@ -193,7 +193,7 @@ replaced with Futures for single notifications.
 
 =head2 emit
 
-  $obj->emit( $event_name, $arg1, $arg2, ...)
+  $obj->emit( $event_name, $arg1, $arg2, ... )
 
 Send the event to subscribers.  If the subscriber is a coderef, the
 function is called with the object as the first argument and the values
