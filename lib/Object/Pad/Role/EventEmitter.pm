@@ -3,7 +3,7 @@ use v5.16;  # because of __SUB__
 use Feature::Compat::Try;
 use Object::Pad 0.79;
 
-package Object::Pad::Role::EventEmitter;
+package Object::Pad::Role::EventEmitter '0.0.1';
 role Object::Pad::Role::EventEmitter;
 
 use Scalar::Util qw(blessed weaken);
