@@ -172,7 +172,10 @@ Object::Pad::Role::EventEmitter - A role for Object::Pad classes to emit events
   $i->unsubscribe( $subscription );
   $i->unsubscribe( $subscription_q );
 
-  # or finish the queue (unsubscribes upon the next event):
+  # alternatively, unsubscribe by cancelling the future:
+  $f->cancel;
+
+  # or by finishing the queue (unsubscribes upon the next event):
   $q->finish;
 
 
