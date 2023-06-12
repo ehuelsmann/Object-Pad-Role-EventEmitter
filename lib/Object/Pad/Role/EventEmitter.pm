@@ -141,7 +141,7 @@ Object::Pad::Role::EventEmitter - A role for Object::Pad classes to emit events
   class MyObject :does(Object::Pad::Role::EventEmitter);
 
   method foo($a) {
-    $self->emit(foo => $a);
+    $self->emit( foo => $a );
   }
 
   1;
