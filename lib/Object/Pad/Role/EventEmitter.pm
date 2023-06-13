@@ -1,19 +1,47 @@
 
 use v5.16;  # because of __SUB__
+use feature 'signatures';
 use Feature::Compat::Try;
-use Object::Pad 0.79;
+use Object::Pad 0.79 qw( :experimental(mop) );
 
-package Object::Pad::Role::EventEmitter '0.0.1';
+package Object::Pad::Role::EventEmitter 0.000001;
 role Object::Pad::Role::EventEmitter;
 
+use List::Util qw(uniq);
 use Scalar::Util qw(blessed weaken);
 use Scope::Guard;
-
+use Symbol qw(qualify_to_ref);
 
 field %subscribers;
 field $_guard; # Emulate DEMOLISH
 
+sub _calculate_emitted_events {
+    my $class_name = shift;
+    my $ref = qualify_to_ref "__ObjectPadRoleEventEmitter-events", $class_name;
+    return @{${*$ref}} if defined ${*$ref};
+
+    my $class = Object::Pad::MOP::Class->for_class( $class_name );
+    my $emits_ref = qualify_to_ref 'EMITS', $class_name;
+    my @emitted_events;
+    @emitted_events = @{*$emits_ref{ARRAY}} if defined *$emits_ref{ARRAY};
+    for my $super ($class->superclasses, $class->all_roles) {
+        my $super_name = $super->name;
+        push @emitted_events, _calculate_emitted_events( $super_name )
+            if $super_name->DOES( __PACKAGE__ );
+    }
+    return @{${*$ref}} = uniq @emitted_events;
+}
+
+ADJUST {
+    %subscribers = (
+        map { $_ => [] } _calculate_emitted_events( __CLASS__ )
+        );
+}
+
 method emit( $event, @args ) {
+    die __CLASS__ . " does not emit $event"
+        unless exists $subscribers{$event};
+
     if (exists $subscribers{$event}) {
         for my $cb (@{$subscribers{$event}}) {
             $cb->[0]->( $self, @args );
@@ -22,11 +50,17 @@ method emit( $event, @args ) {
 }
 
 method has_subscribers( $event ) {
+    die __CLASS__ . " does not emit $event"
+        unless exists $subscribers{$event};
+
     return ((exists $subscribers{$event})
             and (@{$subscribers{$event}} > 0));
 }
 
 method on( $event, $subscriber ) {
+    die __CLASS__ . " does not emit $event"
+        unless exists $subscribers{$event};
+
     $subscribers{$event} //= [];
     if (not $_guard) { # Emulate DEMOLISH
         $_guard = Scope::Guard->new(
@@ -91,6 +125,9 @@ method on( $event, $subscriber ) {
 }
 
 method once( $event, $subscriber ) {
+    die __CLASS__ . " does not emit $event"
+        unless exists $subscribers{$event};
+
     return $self->on(
         $event,
         sub {
@@ -101,7 +138,11 @@ method once( $event, $subscriber ) {
 }
 
 method unsubscribe( $event, $subscription=undef ) {
-    return unless exists $subscribers{$event};
+    die __CLASS__ . " does not emit $event"
+        unless exists $subscribers{$event};
+
+    return
+        unless @{$subscribers{$event}};
 
     if ($subscription) {
         my $idx;
@@ -112,13 +153,12 @@ method unsubscribe( $event, $subscription=undef ) {
             my $deleted = splice @$items, $idx, 1, ();
             $deleted->[1]->();
         }
-        delete $subscribers{$event} unless @$items;
     }
     else {
         for my $item (@{$subscribers{$event}}) {
             $item->[1]->();
         }
-        delete $subscribers{$event};
+        $subscribers{$event} = [];
     }
 
     return;
